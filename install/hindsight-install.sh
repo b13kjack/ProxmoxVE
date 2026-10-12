@@ -154,9 +154,9 @@ msg_ok "Created Hindsight Control Plane Service"
 # exists, so don't fail the install over it; print the exact recovery instead.
 if [[ "$LLM_PROVIDER" == "openai-codex" && ! -f /var/lib/hindsight/codex/auth.json ]]; then
   msg_warn "Codex OAuth login still needed — the API will restart-loop until then."
-  echo -e "${TAB3}On the Proxmox host, run:"
-  echo -e "${TAB3}  pct exec <ctid> -- bash -c 'export CODEX_HOME=/var/lib/hindsight/codex; codex auth login'"
-  echo -e "${TAB3}Complete the browser/device flow, then:"
+  echo -e "${TAB3}On the Proxmox host, run (headless device flow, no browser needed):"
+  echo -e "${TAB3}  pct exec <ctid> -- bash -c 'export CODEX_HOME=/var/lib/hindsight/codex; codex login --device-auth'"
+  echo -e "${TAB3}Enter the one-time code at https://auth.openai.com/codex/device, then:"
   echo -e "${TAB3}  pct exec <ctid> -- systemctl restart hindsight-api"
   motd_ssh
   customize
