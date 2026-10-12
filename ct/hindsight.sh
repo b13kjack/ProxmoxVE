@@ -27,6 +27,7 @@ var_os="${var_os:-debian}"
 var_version="${var_version:-14}"
 var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
+var_hindsight_llm_key="${var_hindsight_llm_key:-}"
 
 header_info "$APP"
 variables

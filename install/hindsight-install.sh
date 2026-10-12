@@ -41,7 +41,11 @@ msg_ok "Installed Hindsight Control Plane"
 
 prompt="${var_hindsight_llm_key:-}"
 if [[ -z "$prompt" ]]; then
-  read -r -p "${TAB3}Enter OpenAI API key for memory extraction (leave empty to add later in /opt/hindsight/.env): " prompt
+  read -r -p "${TAB3}Enter OpenAI API key for memory extraction (required — API refuses to start without it): " prompt
+fi
+if [[ -z "$prompt" ]]; then
+  msg_error "HINDSIGHT_API_LLM_API_KEY is empty — hindsight-api exits with 'LLM API key is required'. Re-run with var_hindsight_llm_key=<key> or enter a key at the prompt."
+  exit 1
 fi
 
 msg_info "Configuring Hindsight"
