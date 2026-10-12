@@ -13,7 +13,7 @@ var_arm64="${var_arm64:-yes}"
 var_unprivileged="${var_unprivileged:-1}"
 if [[ -z "${var_os:-}" ]] && command -v pveversion >/dev/null 2>&1; then
   var_os=$(msg_menu "Choose the container OS" \
-    "debian" "Debian 13" \
+    "debian" "Debian 14" \
     "alpine" "Alpine (smaller footprint)")
 fi
 
@@ -24,7 +24,7 @@ if [[ "${var_os:-}" == "alpine" ]]; then
 else
   var_ram="${var_ram:-1024}"
   var_disk="${var_disk:-4}"
-  var_version="${var_version:-13}"
+  var_version="${var_version:-14}"
 fi
 
 header_info "$APP"
