@@ -6,6 +6,13 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # License: MIT | https://github.com/community-scripts/ProxmoxVE/raw/main/LICENSE
 # Source: https://hermes-agent.nousresearch.com/
 
+# Fork default: this ct/ script and its install/ partner stay in lockstep on
+# this branch (a curl-fetched ct/ cannot tell the engine where it came from).
+# Override with COMMUNITY_SCRIPTS_URL=<url> to fetch install scripts elsewhere.
+# TODO: point at main after hermes-debian14-hindsight merges.
+: "${COMMUNITY_SCRIPTS_URL:=https://raw.githubusercontent.com/b13kjack/ProxmoxVE/hermes-debian14-hindsight}"
+export COMMUNITY_SCRIPTS_URL
+
 APP="Hermes Agent"
 var_tags="${var_tags:-ai;automation;agent}"
 var_cpu="${var_cpu:-2}"
