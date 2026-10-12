@@ -60,6 +60,11 @@ if iptables -t nat -C POSTROUTING -s "$SUBNET" -o "$UPLINK" -j MASQUERADE 2>/dev
 else
   fail "MASQUERADE $SUBNET -> $UPLINK missing"
 fi
+if systemctl is-enabled vmbr1-nat >/dev/null 2>&1; then
+  pass "vmbr1-nat systemd unit enabled (rules persist across reboots)"
+else
+  echo "  [SKIP] vmbr1-nat unit not found (rules may be legacy post-up based)"
+fi
 if [[ "$ROUTED" == "1" ]]; then
   echo "  [SKIP] ROUTED mode: no DNAT expected (LAN uses static route)"
 elif iptables -t nat -C PREROUTING -i "$UPLINK" -p tcp --dport "$SSH_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:22" 2>/dev/null; then
