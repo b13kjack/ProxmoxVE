@@ -88,7 +88,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=/opt/hindsight/.env
-ExecStart=hindsight-control-plane
+ExecStart=/usr/local/bin/hindsight-control-plane
 Restart=on-failure
 RestartSec=5
 
@@ -106,7 +106,8 @@ for ((i = 1; i <= 120; i++)); do
     break
   fi
   if ! systemctl is-active -q hindsight-api; then
-    msg_error "Hindsight API service failed to stay running — check 'journalctl -u hindsight-api'"
+    msg_error "Hindsight API service failed to stay running — dumping logs:"
+    journalctl -u hindsight-api -n 50 --no-pager || true
     exit 1
   fi
   sleep 5
