@@ -19,6 +19,10 @@ HERMES_IP="${HERMES_IP:-10.10.10.10}"
 SSH_FWD_PORT="${SSH_FWD_PORT:-2222}"
 DASHBOARD_FWD_PORT="${DASHBOARD_FWD_PORT:-9119}"
 GATEWAY_FWD_PORT="${GATEWAY_FWD_PORT:-}"
+# ROUTED=1: LAN reaches containers via a static route on the LAN router
+# (10.10.10.0/24 via the Proxmox host) instead of DNAT forwards. Only
+# MASQUERADE (internet) is installed; proxy targets are direct .10/.11 IPs.
+ROUTED="${ROUTED:-0}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "Run as root on the Proxmox host." >&2
@@ -72,11 +76,15 @@ echo "== NAT (persisted via $STANZA_FILE post-up lines)"
 PERSIST=(
   "post-up iptables -t nat -A POSTROUTING -s '${SUBNET}' -o ${UPLINK} -j MASQUERADE"
   "post-down iptables -t nat -D POSTROUTING -s '${SUBNET}' -o ${UPLINK} -j MASQUERADE"
-  "post-up iptables -t nat -A PREROUTING -i ${UPLINK} -p tcp --dport ${SSH_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:22"
-  "post-down iptables -t nat -D PREROUTING -i ${UPLINK} -p tcp --dport ${SSH_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:22"
-  "post-up iptables -t nat -A PREROUTING -i ${UPLINK} -p tcp --dport ${DASHBOARD_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:9119"
-  "post-down iptables -t nat -D PREROUTING -i ${UPLINK} -p tcp --dport ${DASHBOARD_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:9119"
 )
+if [[ "$ROUTED" != "1" ]]; then
+  PERSIST+=(
+    "post-up iptables -t nat -A PREROUTING -i ${UPLINK} -p tcp --dport ${SSH_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:22"
+    "post-down iptables -t nat -D PREROUTING -i ${UPLINK} -p tcp --dport ${SSH_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:22"
+    "post-up iptables -t nat -A PREROUTING -i ${UPLINK} -p tcp --dport ${DASHBOARD_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:9119"
+    "post-down iptables -t nat -D PREROUTING -i ${UPLINK} -p tcp --dport ${DASHBOARD_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:9119"
+  )
+fi
 if [[ -n "$GATEWAY_FWD_PORT" ]]; then
   PERSIST+=(
     "post-up iptables -t nat -A PREROUTING -i ${UPLINK} -p tcp --dport ${GATEWAY_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:${GATEWAY_FWD_PORT}"
@@ -94,13 +102,26 @@ for line in "${PERSIST[@]}"; do
 done
 
 ensure_iptables nat POSTROUTING -s "$SUBNET" -o "$UPLINK" -j MASQUERADE
-ensure_iptables nat PREROUTING -i "$UPLINK" -p tcp --dport "$SSH_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:22"
-ensure_iptables nat PREROUTING -i "$UPLINK" -p tcp --dport "$DASHBOARD_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:9119"
+ensure_iptables filter FORWARD -i "$UPLINK" -o "$BRIDGE" -d "$SUBNET" -j ACCEPT
+ensure_iptables filter FORWARD -i "$BRIDGE" -s "$SUBNET" -o "$UPLINK" -j ACCEPT
+if [[ "$ROUTED" != "1" ]]; then
+  ensure_iptables nat PREROUTING -i "$UPLINK" -p tcp --dport "$SSH_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:22"
+  ensure_iptables nat PREROUTING -i "$UPLINK" -p tcp --dport "$DASHBOARD_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:9119"
+fi
 if [[ -n "$GATEWAY_FWD_PORT" ]]; then
   ensure_iptables nat PREROUTING -i "$UPLINK" -p tcp --dport "$GATEWAY_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:${GATEWAY_FWD_PORT}"
 fi
 
 echo
 echo "done. Containers: vmbr1, 10.10.10.x/24, gateway ${HOST_IP}."
-echo "SSH:      <proxmox-lan-ip>:${SSH_FWD_PORT} -> ${HERMES_IP}:22"
-echo "Dashboard reverse-proxy target: http://${HERMES_IP}:9119"
+if [[ "$ROUTED" == "1" ]]; then
+  echo "ROUTED mode: add this static route on your LAN router:"
+  echo "  10.10.10.0/24 via <proxmox-lan-ip>"
+  echo "Then from LAN, reach containers directly:"
+  echo "  SSH:      ssh root@${HERMES_IP} (port 22, no forward needed)"
+  echo "  Dashboard reverse-proxy target: http://${HERMES_IP}:9119"
+  echo "(If the datacenter firewall is enabled, allow FORWARD ${UPLINK}<->${BRIDGE} there too.)"
+else
+  echo "SSH:      <proxmox-lan-ip>:${SSH_FWD_PORT} -> ${HERMES_IP}:22"
+  echo "Dashboard reverse-proxy target: http://<proxmox-lan-ip>:${DASHBOARD_FWD_PORT}"
+fi

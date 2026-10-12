@@ -19,6 +19,7 @@ HERMES_IP="${HERMES_IP:-10.10.10.10}"
 HINDSIGHT_IP="${HINDSIGHT_IP:-10.10.10.11}"
 ADGUARD_IP="${ADGUARD_IP:-}"
 SSH_FWD_PORT="${SSH_FWD_PORT:-2222}"
+ROUTED="${ROUTED:-0}"
 
 PASS=0
 FAIL=0
@@ -59,7 +60,9 @@ if iptables -t nat -C POSTROUTING -s "$SUBNET" -o "$UPLINK" -j MASQUERADE 2>/dev
 else
   fail "MASQUERADE $SUBNET -> $UPLINK missing"
 fi
-if iptables -t nat -C PREROUTING -i "$UPLINK" -p tcp --dport "$SSH_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:22" 2>/dev/null; then
+if [[ "$ROUTED" == "1" ]]; then
+  echo "  [SKIP] ROUTED mode: no DNAT expected (LAN uses static route)"
+elif iptables -t nat -C PREROUTING -i "$UPLINK" -p tcp --dport "$SSH_FWD_PORT" -j DNAT --to-destination "${HERMES_IP}:22" 2>/dev/null; then
   pass "DNAT ${UPLINK}:${SSH_FWD_PORT} -> ${HERMES_IP}:22 present"
 else
   fail "DNAT ${UPLINK}:${SSH_FWD_PORT} -> ${HERMES_IP}:22 missing"
