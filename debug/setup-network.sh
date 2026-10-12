@@ -29,6 +29,11 @@ GATEWAY_FWD_PORT="${GATEWAY_FWD_PORT:-}"
 # (10.10.10.0/24 via the Proxmox host) instead of DNAT forwards. Only
 # MASQUERADE (internet) is installed; proxy targets are direct .10/.11 IPs.
 ROUTED="${ROUTED:-0}"
+# DASHBOARD_DNAT=1: install the dashboard DNAT forward even in ROUTED mode.
+# Gives clients without the static route a stable LAN endpoint at
+# <proxmox-lan-ip>:9119 -> HERMES_IP:9119. App-layer password auth is still
+# enforced by the dashboard itself; DNAT only changes reachability.
+DASHBOARD_DNAT="${DASHBOARD_DNAT:-0}"
 
 APPLY_SCRIPT="/usr/local/sbin/${BRIDGE}-nat-apply"
 UNIT="vmbr1-nat.service"
@@ -94,6 +99,8 @@ echo "== NAT rules (${UNIT})"
   echo "rule filter FORWARD -i ${BRIDGE} -s '${SUBNET}' -o ${UPLINK} -j ACCEPT"
   if [[ "$ROUTED" != "1" ]]; then
     echo "rule nat PREROUTING -i ${UPLINK} -p tcp --dport ${SSH_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:22"
+    echo "rule nat PREROUTING -i ${UPLINK} -p tcp --dport ${DASHBOARD_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:9119"
+  elif [[ "$DASHBOARD_DNAT" == "1" ]]; then
     echo "rule nat PREROUTING -i ${UPLINK} -p tcp --dport ${DASHBOARD_FWD_PORT} -j DNAT --to-destination ${HERMES_IP}:9119"
   fi
   if [[ -n "$GATEWAY_FWD_PORT" ]]; then
