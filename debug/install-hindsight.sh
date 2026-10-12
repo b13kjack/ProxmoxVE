@@ -83,5 +83,7 @@ export var_protection="yes"
 export var_verbose="yes"
 export var_ssh="yes"
 export var_ssh_authorized_key="$ALL_KEYS"
+export var_hindsight_llm_provider="${var_hindsight_llm_provider:-openai-codex}"
+export var_hindsight_llm_model="${var_hindsight_llm_model:-gpt-6-luna}"
 
 bash "$TMP_CT"
