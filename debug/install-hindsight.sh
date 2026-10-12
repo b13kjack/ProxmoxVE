@@ -54,8 +54,8 @@ if ! curl -fsSL "${BASE_URL}/ct/hindsight.sh?cb=$(date +%s)" -o "$TMP_CT"; then
   echo "Could not download ct/hindsight.sh from $BASE_URL" >&2
   exit 3
 fi
-if ! grep -q 'COMMUNITY_SCRIPTS_URL:=https://raw.githubusercontent.com/b13kjack' "$TMP_CT"; then
-  echo "Downloaded ct/hindsight.sh is stale (missing fork URL default). Aborting." >&2
+if ! grep -q '_UPSTREAM_BASE=' "$TMP_CT"; then
+  echo "Downloaded ct/hindsight.sh is stale (missing fork URL override). Aborting." >&2
   exit 4
 fi
 bash -n "$TMP_CT" || exit 5

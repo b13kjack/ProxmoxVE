@@ -7,11 +7,16 @@ source "$_cs_boot" 2>/dev/null || source <(curl -fsSL "${COMMUNITY_SCRIPTS_CORE_
 # Source: https://www.postgresql.org/
 
 # Fork default: this ct/ script and its install/ partner stay in lockstep on
-# this branch (a curl-fetched ct/ cannot tell the engine where it came from).
-# Override with COMMUNITY_SCRIPTS_URL=<url> to fetch install scripts elsewhere.
+# this branch (a curl-fetched ct/ cannot tell the engine where it came from,
+# and the engine defaults the base to upstream main at load time, so := would
+# never override it). An explicitly exported non-default base is respected.
 # TODO: point at main after hermes-debian14-hindsight merges.
-: "${COMMUNITY_SCRIPTS_URL:=https://raw.githubusercontent.com/b13kjack/ProxmoxVE/hermes-debian14-hindsight}"
+_UPSTREAM_BASE="https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main"
+if [[ -z "${COMMUNITY_SCRIPTS_URL:-}" || "${COMMUNITY_SCRIPTS_URL}" == "${_UPSTREAM_BASE}" ]]; then
+  COMMUNITY_SCRIPTS_URL="https://raw.githubusercontent.com/b13kjack/ProxmoxVE/hermes-debian14-hindsight"
+fi
 export COMMUNITY_SCRIPTS_URL
+unset _UPSTREAM_BASE
 
 APP="PostgreSQL"
 var_tags="${var_tags:-database}"
